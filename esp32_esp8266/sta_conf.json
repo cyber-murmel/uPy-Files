@@ -1,0 +1,4 @@
+{
+	"ssid": "SSID of the AP",
+	"pass": "PSK for WPA/WPA2"
+}
