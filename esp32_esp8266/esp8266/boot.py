@@ -5,9 +5,11 @@ from network import STAT_GOT_IP
 import webrepl
 from machine import reset
 import ujson as json
+from socket import socket as sock, AF_INET, SOCK_DGRAM, getaddrinfo
 
 STA_CONF_ARR_PATH = "/sta_conf_arr.json"
 PHY_MODE = MODE_11N
+ADDR_ANNOUNCE_PORT = 1337
 
 def scan_wifi():
     sta_if = WLAN(STA_IF)
@@ -50,10 +52,20 @@ def connect_to_wifi():
     deactivate_sta()
     raise OSError("No access point available.")
 
+def get_broadcast_addr():
+    ifconf = WLAN(STA_IF).ifconfig()
+    addr_arr = [int(char) for char in ifconf[0].split('.')]
+    inv_mask_arr = [int(char)^255 for char in ifconf[1].split('.')]
+    return '.'.join([str(pair[0] | pair[1]) for pair in zip(addr_arr, inv_mask_arr)])
+
 if __name__ == '__main__':
     phy_mode(PHY_MODE)
     try:
         connect_to_wifi()
+        s = sock(AF_INET, SOCK_DGRAM)
+        s.connect((get_broadcast_addr(), ADDR_ANNOUNCE_PORT))
+        s.send("{}\n".format(WLAN().ifconfig()[0]))
+        s.close()
     except KeyError as err:
         print("Key Error: {0}".format(err))
     except OSError as err:
